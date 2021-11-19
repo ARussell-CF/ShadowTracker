@@ -35,7 +35,7 @@ namespace ShadowTracker.Data
             var databaseUri = new Uri(databaseUrl);
 
             var userInfo = databaseUri.UserInfo.Split(':');
-        
+
             var builder = new NpgsqlConnectionStringBuilder
             {
                 Host = databaseUri.Host,
@@ -61,7 +61,7 @@ namespace ShadowTracker.Data
             var roleManagerSvc = svcProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
             var userManagerSvc = svcProvider.GetRequiredService<UserManager<BTUser>>();
-            
+
             await dbContextSvc.Database.MigrateAsync();
 
             //Things we need to create:
@@ -82,7 +82,7 @@ namespace ShadowTracker.Data
             //Ticket Types
             await SeedTicketTypesAsync(dbContextSvc);
             //Notification Types
-            //await SeedNotificationTypes(dbContextSvc);
+            await SeedNotificationTypes(dbContextSvc);
             //Projects
             await SeedProjectsAsync(dbContextSvc);
             //Tickets
@@ -124,7 +124,7 @@ namespace ShadowTracker.Data
                 company4Id = dbContextSvc.Companies.FirstOrDefault(c => c.Name == "Company 4").Id;
                 company5Id = dbContextSvc.Companies.FirstOrDefault(c => c.Name == "Company 5").Id;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine("******** ERROR ********");
                 Console.WriteLine("Error Seeding Companies");
@@ -147,7 +147,7 @@ namespace ShadowTracker.Data
             try
             {
                 var user = await userManagerSvc.FindByEmailAsync(defaultUser.Email);
-                if(user is null)
+                if (user is null)
                 {
                     //When seeding users you MUST meet password complexity requirements
                     //6 char minimum, 1 upper, 1 lower, 1 number, 1 special
@@ -219,7 +219,32 @@ namespace ShadowTracker.Data
 
         private static async Task SeedTicketTypesAsync(ApplicationDbContext dbContextSvc)
         {
-            throw new NotImplementedException();
+            try
+            {
+                IList<TicketType> ticketTypes = new List<TicketType>()
+                {
+                    new TicketType() { Name = BTTicketType.ChangeRequest.ToString() },
+                    new TicketType() { Name = BTTicketType.Defect.ToString() },
+                    new TicketType() { Name = BTTicketType.Enhancement.ToString() },
+                    new TicketType() { Name = BTTicketType.GeneralTask.ToString() },
+                    new TicketType() { Name = BTTicketType.NewDevelopment.ToString() },
+                    new TicketType() { Name = BTTicketType.WorkTask.ToString() }
+                };
+
+                var dbTicketTypes = dbContextSvc.TicketTypes.Select(c => c.Name).ToList();
+
+                await dbContextSvc.TicketTypes.AddRangeAsync(ticketTypes.Where(c => !dbTicketTypes.Contains(c.Name)));
+
+                await dbContextSvc.SaveChangesAsync();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("******** ERROR ********");
+                Console.WriteLine("Error Seeding Ticket Types");
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("***********************");
+            }
         }
 
         private static async Task SeedNotificationTypes(ApplicationDbContext dbContextSvc)
